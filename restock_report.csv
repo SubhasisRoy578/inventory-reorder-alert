@@ -1,0 +1,5 @@
+Item,Current Quantity,Threshold,Priority,Suggested Reorder
+Laptop,5,10,Low,15
+Keyboard,2,15,Critical,28
+USB Cable,0,8,Critical,16
+Monitor,10,12,Low,14
