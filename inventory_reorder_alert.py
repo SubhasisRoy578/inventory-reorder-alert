@@ -5,37 +5,43 @@ OUTPUT_FILE = "restock_report.csv"
 
 restock_items = []
 
+# Read Inventory CSV
 try:
     with open(INPUT_FILE, "r", newline="", encoding="utf-8") as file:
         reader = csv.DictReader(file)
 
         for row in reader:
             try:
-                item = row["item_name"].strip()
+                item_name = row["item_name"].strip()
 
-                if row["current_quantity"] == "" or row["reorder_threshold"] == "":
+                if not row["current_quantity"] or not row["reorder_threshold"]:
                     print(f"Skipping malformed row: {row}")
                     continue
 
-                quantity = int(row["current_quantity"])
-                threshold = int(row["reorder_threshold"])
+                current_quantity = int(row["current_quantity"])
+                reorder_threshold = int(row["reorder_threshold"])
 
-                if threshold <= 0:
-                    print(f"Invalid threshold for {item}")
+                if reorder_threshold <= 0:
+                    print(f"Invalid threshold for {item_name}. Skipping...")
                     continue
 
-                if quantity < threshold:
-                    if quantity < threshold * 0.25:
+                # Check whether restocking is required
+                if current_quantity < reorder_threshold:
+
+                    # Priority Level
+                    if current_quantity < (reorder_threshold * 0.25):
                         priority = "Critical"
                     else:
                         priority = "Low"
 
-                    reorder_quantity = (threshold * 2) - quantity
+                    # Healthy stock level = 2 × threshold
+                    healthy_stock = reorder_threshold * 2
+                    reorder_quantity = healthy_stock - current_quantity
 
                     restock_items.append({
-                        "Item": item,
-                        "Current Quantity": quantity,
-                        "Threshold": threshold,
+                        "Item": item_name,
+                        "Current Quantity": current_quantity,
+                        "Threshold": reorder_threshold,
                         "Priority": priority,
                         "Suggested Reorder": reorder_quantity
                     })
@@ -44,23 +50,34 @@ try:
                 print(f"Skipping malformed row: {row}")
 
 except FileNotFoundError:
-    print(f"Error: {INPUT_FILE} not found.")
+    print(f"Error: '{INPUT_FILE}' not found.")
     exit()
 
-print("\n========== RESTOCK REPORT ==========\n")
+# -------------------------------
+# Console Report
+# -------------------------------
 
-if not restock_items:
-    print("All inventory levels are healthy.")
-else:
+print("\n" + "=" * 60)
+print("INVENTORY RESTOCK REPORT")
+print("=" * 60)
+
+if restock_items:
     for item in restock_items:
         print(
-            f"{item['Item']} | "
-            f"Current: {item['Current Quantity']} | "
-            f"Threshold: {item['Threshold']} | "
-            f"Priority: {item['Priority']} | "
-            f"Reorder: {item['Suggested Reorder']}"
+            f"\nItem: {item['Item']}"
+            f"\nCurrent Stock : {item['Current Quantity']}"
+            f"\nThreshold     : {item['Threshold']}"
+            f"\nPriority      : {item['Priority']}"
+            f"\nReorder Qty   : {item['Suggested Reorder']}"
         )
+else:
+    print("All inventory levels are healthy.")
 
+# -------------------------------
+# Export CSV Report
+# -------------------------------
+
+if restock_items:
     with open(OUTPUT_FILE, "w", newline="", encoding="utf-8") as file:
         writer = csv.DictWriter(
             file,
@@ -72,22 +89,38 @@ else:
                 "Suggested Reorder"
             ]
         )
+
         writer.writeheader()
         writer.writerows(restock_items)
 
-    print(f"\nCSV report saved as '{OUTPUT_FILE}'")
+    print(f"\nCSV report successfully saved as '{OUTPUT_FILE}'")
 
-print("\n========== EMAIL ALERT ==========\n")
+# -------------------------------
+# Simulated Email Alert
+# -------------------------------
+
+print("\n" + "=" * 60)
+print("SIMULATED EMAIL ALERT")
+print("=" * 60)
+
 print("Subject: Inventory Restock Alert\n")
 
+print("Dear Warehouse Manager,\n")
+
 if restock_items:
-    print("The following items require restocking:\n")
+    print("The following inventory items require immediate attention:\n")
+
     for item in restock_items:
         print(
-            f"- {item['Item']} "
-            f"({item['Priority']}) - "
-            f"Current Stock: {item['Current Quantity']}, "
-            f"Suggested Reorder: {item['Suggested Reorder']}"
+            f"- {item['Item']}"
+            f" | Priority: {item['Priority']}"
+            f" | Current Stock: {item['Current Quantity']}"
+            f" | Suggested Reorder: {item['Suggested Reorder']}"
         )
+
+    print("\nPlease arrange the required purchase orders at the earliest.")
 else:
-    print("No items require restocking today.")
+    print("No inventory items require restocking today.")
+
+print("\nRegards,")
+print("Inventory Monitoring System")
